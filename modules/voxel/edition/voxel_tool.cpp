@@ -1,4 +1,5 @@
 #include "voxel_tool.h"
+
 #include "../storage/voxel_buffer_gd.h"
 #include "../storage/voxel_data.h"
 #include "../util/godot/core/packed_arrays.h"
@@ -7,6 +8,10 @@
 #include "../util/math/conv.h"
 #include "../util/profiling.h"
 #include "funcs.h"
+
+#ifdef ZN_GODOT
+#include "../util/godot/core/class_db.h"
+#endif
 
 #ifdef VOXEL_ENABLE_MESH_SDF
 #include "voxel_mesh_sdf_gd.h"
@@ -443,7 +448,9 @@ void VoxelTool::do_path_chunked(
 	// Compute total bounding box
 
 	const AABB total_aabb = get_path_aabb(positions, radii).grow(margin);
-	const Box3i total_voxel_box(to_vec3i(math::floor(total_aabb.position)), to_vec3i(math::ceil(total_aabb.size)));
+	const Box3i total_voxel_box = Box3i::from_min_max(
+			to_vec3i(math::floor(total_aabb.position)), to_vec3i(math::ceil(total_aabb.position + total_aabb.size))
+	);
 
 	if (!is_area_editable(total_voxel_box)) {
 		ZN_PRINT_WARNING("Area not editable");

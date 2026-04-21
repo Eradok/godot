@@ -44,6 +44,10 @@
 #include "../instancing/voxel_instancer.h"
 #endif
 
+#ifdef ZN_GODOT
+#include "../../util/godot/core/class_db.h"
+#endif
+
 namespace zylann::voxel {
 
 namespace {
@@ -364,7 +368,8 @@ void VoxelLodTerrain::_on_gi_mode_changed() {
 }
 
 void VoxelLodTerrain::_on_shadow_casting_changed() {
-	const RenderingServer::ShadowCastingSetting mode = RenderingServer::ShadowCastingSetting(get_shadow_casting());
+	const RenderingServerEnums::ShadowCastingSetting mode =
+			RenderingServerEnums::ShadowCastingSetting(get_shadow_casting());
 	for (unsigned int lod_index = 0; lod_index < _update_data->state.lods.size(); ++lod_index) {
 		_mesh_maps_per_lod[lod_index].for_each_block([mode](VoxelMeshBlockVLT &block) { //
 			block.set_shadow_casting(mode);
@@ -667,10 +672,10 @@ void VoxelLodTerrain::push_async_edit(IThreadedTask *task, Box3i box, std::share
 }
 
 Ref<VoxelTool> VoxelLodTerrain::get_voxel_tool() {
-	VoxelToolLodTerrain *vt = memnew(VoxelToolLodTerrain(this));
+	Ref<VoxelToolLodTerrain> vt(memnew(VoxelToolLodTerrain(this)));
 	// Set to most commonly used channel on this kind of terrain
 	vt->set_channel(VoxelBuffer::CHANNEL_SDF);
-	return Ref<VoxelTool>(vt);
+	return vt;
 }
 
 int VoxelLodTerrain::get_view_distance() const {
@@ -835,7 +840,7 @@ void VoxelLodTerrain::get_lod_distances(Span<float> distances) {
 
 	if (settings.streaming_system == VoxelLodTerrainUpdateData::STREAMING_SYSTEM_LEGACY_OCTREE) {
 		for (int lod_index = 1; lod_index < lod_count; ++lod_index) {
-			distances[lod_index] = settings.lod_distance;
+			distances[lod_index] = settings.lod_distance * (1 << lod_index);
 		}
 
 	} else {
@@ -2058,15 +2063,15 @@ void VoxelLodTerrain::apply_mesh_update(VoxelEngine::BlockMeshOutput &ob) {
 		}
 
 #ifdef TOOLS_ENABLED
-		const RenderingServer::ShadowCastingSetting shadow_occluder_mode = _debug_draw_shadow_occluders
-				? RenderingServer::SHADOW_CASTING_SETTING_ON
-				: RenderingServer::SHADOW_CASTING_SETTING_SHADOWS_ONLY;
+		const RenderingServerEnums::ShadowCastingSetting shadow_occluder_mode = _debug_draw_shadow_occluders
+				? RenderingServerEnums::SHADOW_CASTING_SETTING_ON
+				: RenderingServerEnums::SHADOW_CASTING_SETTING_SHADOWS_ONLY;
 #endif
 
 		block->set_mesh(
 				mesh,
 				get_gi_mode(),
-				RenderingServer::ShadowCastingSetting(get_shadow_casting()),
+				RenderingServerEnums::ShadowCastingSetting(get_shadow_casting()),
 				get_render_layers_mask(),
 				shadow_occluder_mesh,
 				ob.surfaces.collision_surface.submesh_vertex_end,
@@ -2106,7 +2111,7 @@ void VoxelLodTerrain::apply_mesh_update(VoxelEngine::BlockMeshOutput &ob) {
 					transition_mesh,
 					dir,
 					get_gi_mode(),
-					RenderingServer::ShadowCastingSetting(get_shadow_casting()),
+					RenderingServerEnums::ShadowCastingSetting(get_shadow_casting()),
 					get_render_layers_mask()
 			);
 		}
@@ -2733,6 +2738,12 @@ void VoxelLodTerrain::set_streaming_system(StreamingSystem v) {
 #ifdef TOOLS_ENABLED
 	notify_property_list_changed();
 #endif
+
+#ifdef VOXEL_ENABLE_INSTANCER
+	if (_instancer != nullptr) {
+		_instancer->update_mesh_lod_distances_from_parent();
+	}
+#endif
 }
 
 void VoxelLodTerrain::set_voxel_bounds(Box3i p_box) {
@@ -3351,8 +3362,9 @@ void VoxelLodTerrain::debug_set_draw_shadow_occluders(bool enable) {
 		return;
 	}
 	_debug_draw_shadow_occluders = enable;
-	const RenderingServer::ShadowCastingSetting mode =
-			enable ? RenderingServer::SHADOW_CASTING_SETTING_ON : RenderingServer::SHADOW_CASTING_SETTING_SHADOWS_ONLY;
+	const RenderingServerEnums::ShadowCastingSetting mode = enable
+			? RenderingServerEnums::SHADOW_CASTING_SETTING_ON
+			: RenderingServerEnums::SHADOW_CASTING_SETTING_SHADOWS_ONLY;
 	for (VoxelMeshMap<VoxelMeshBlockVLT> &mesh_map : _mesh_maps_per_lod) {
 		mesh_map.for_each_block([mode](VoxelMeshBlockVLT &block) { //
 			block.set_shadow_occluder_mode(mode);

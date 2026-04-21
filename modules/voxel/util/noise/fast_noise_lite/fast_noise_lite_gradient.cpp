@@ -1,5 +1,8 @@
 #include "fast_noise_lite_gradient.h"
 #include "../../godot/core/array.h"
+#ifdef ZN_GODOT
+#include "../../godot/core/class_db.h"
+#endif
 
 namespace zylann {
 
@@ -205,7 +208,7 @@ void ZN_FastNoiseLiteGradient::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "seed"), "set_seed", "get_seed");
 
 	ADD_PROPERTY(
-			PropertyInfo(Variant::FLOAT, "period", PROPERTY_HINT_RANGE, "0.0001,10000.0,0.1,exp"),
+			PropertyInfo(Variant::FLOAT, "period", PROPERTY_HINT_RANGE, "0.0001,10000.0,0.1,or_greater,exp"),
 			"set_period",
 			"get_period"
 	);

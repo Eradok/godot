@@ -5,6 +5,10 @@
 #include "../math/vector3.h"
 #include <core/io/image.h>
 
+#ifdef ZN_GODOT
+#include "../godot/core/class_db.h"
+#endif
+
 namespace zylann {
 
 FastNoise2::FastNoise2() {
@@ -700,7 +704,7 @@ void FastNoise2::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "seed"), "set_seed", "get_seed");
 
 	ADD_PROPERTY(
-			PropertyInfo(Variant::FLOAT, "period", PROPERTY_HINT_RANGE, "0.0001,10000.0,0.1,exp"),
+			PropertyInfo(Variant::FLOAT, "period", PROPERTY_HINT_RANGE, "0.0001,10000.0,0.1,or_greater,exp"),
 			"set_period",
 			"get_period"
 	);
